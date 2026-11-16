@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REPRISE EXAM AMF</title>
+<style>
+:root {
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --text: #172033;
+  --muted: #1858b8;
+  --accent: #1e72d1;
+  --accent2: #2a1ddd;
+  --shadow: 0 12px 35px rgba(31, 41, 55, .12);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 18px 40px;
+}
+h1 { text-align:center; margin: 0 0 8px; font-size: 28px; }
+.subtitle { text-align:center; color:var(--muted); margin-bottom:24px; }
+.counter { text-align:center; color:var(--muted); margin-bottom:18px; font-size:14px; }
+.success-panel { position: sticky; top: 0; z-index: 30; background: rgba(244,247,251,.96); backdrop-filter: blur(8px); padding: 12px 0 14px; margin: 0 0 18px; }
+.success-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; max-width:560px; margin:0 auto 8px; font-size:14px; font-weight:bold; }
+.success-percent { color:#19c909; font-size:22px; font-weight:800; }
+.success-track { max-width:560px; height:10px; margin:0 auto 7px; background:#fecaca; border-radius:999px; overflow:hidden; }
+.success-fill { height:100%; width:100%; background:#20ca4b; border-radius:999px; transition:width .25s ease; }
+.success-details { text-align:center; color:var(--muted); font-size:12px; }
+.grid { display:flex; flex-direction:column; gap:16px; }
+.card-wrap {
+  perspective: 1200px;
+  height: 190px;
+  cursor: pointer;
+}
+.card {
+  width:100%; height:100%;
+  position:relative;
+  transform-style:preserve-3d;
+  transition: transform .6s ease;
+}
+.card.flipped { transform:rotateY(180deg); }
+.face {
+  position:absolute; inset:0;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  background:var(--card);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:28px;
+  font-size:20px;
+  line-height:1.45;
+}
+.front { border-top:5px solid var(--accent); }
+.back {
+  transform:rotateY(180deg);
+  border-top:5px solid #310123;
+  font-size:18px;
+}
+.hint {
+  position:absolute; bottom:10px; left:0; right:0;
+  text-align:center; font-size:12px; color:var(--muted);
+}
+button {
+  display:block;
+  margin:30px auto 0;
+  border:0;
+  border-radius:999px;
+  padding:14px 30px;
+  background:var(--accent);
+  color:white;
+  font-size:17px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(49,94,251,.25);
+}
+button:hover { background:var(--accent2); }
+
+.card-wrap { position: relative; }
+.card-wrap.marked .face { border: 3px solid #e53935 !important; }
+.card-wrap.marked .front { border-top: 5px solid #e53935 !important; }
+.mark-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #b71c1c;
+  background: #e53935;
+  padding: 0;
+  margin: 0;
+  z-index: 20;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,.18);
+}
+.mark-btn:hover { background: #c62828; }
+.mark-btn.marked { background: #8b0000; }
+
+/* Bulle flottante des cartes d'erreurs */
+.error-bubble {
+  position: fixed; right: 22px; bottom: 22px; z-index: 1000;
+  width: 62px; height: 62px; border-radius: 50%; margin: 0; padding: 0;
+  background: #e53935; color: #fff; border: 3px solid #fff;
+  box-shadow: 0 5px 18px rgba(0,0,0,.25); font-size: 25px;
+  display: flex; align-items: center; justify-content: center;
+}
+.error-bubble:hover { background: #c62828; }
+.error-badge {
+  position: absolute; top: -6px; right: -5px; min-width: 25px; height: 25px;
+  padding: 0 6px; border-radius: 999px; background: #172033; color: white;
+  border: 2px solid white; font-size: 13px; line-height: 21px; text-align: center;
+}
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 1100;
+  background: rgba(15, 23, 42, .62); padding: 24px;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.error-modal {
+  width: min(850px, 100%); max-height: 88vh; overflow-y: auto;
+  background: var(--bg); border-radius: 18px; padding: 24px; position: relative;
+  box-shadow: 0 18px 60px rgba(0,0,0,.35);
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-right: 42px; }
+.modal-header h2 { margin: 0 0 18px; font-size: 22px; }
+.close-modal {
+  position: absolute; top: 12px; right: 12px; margin: 0; width: 38px; height: 38px;
+  padding: 0; border-radius: 50%; background: #e5e7eb; color: #172033; font-size: 25px;
+  box-shadow: none;
+}
+.close-modal:hover { background: #cbd5e1; }
+.error-list { display: flex; flex-direction: column; gap: 14px; }
+.error-card { position: relative; min-height: 145px; background: white; border: 2px solid #e53935;
+  border-top: 5px solid #e53935; border-radius: 14px; padding: 24px 48px 24px 20px;
+  box-shadow: var(--shadow); cursor: pointer; white-space: pre-wrap; line-height: 1.45; }
+.error-card .answer { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb; }
+.error-card.flipped .answer { display: block; }
+.unmark-btn {
+  position: absolute; top: 8px; right: 8px; margin: 0; padding: 0; width: 20px; height: 20px;
+  min-width: 20px; border-radius: 50%; border: 2px solid #0759b7; background: #1e72d1;
+  box-shadow: 0 2px 5px rgba(0,0,0,.18); z-index: 2;
+}
+.unmark-btn:hover { background: #084f9e; }
+.empty-errors { text-align: center; color: var(--muted); padding: 28px 12px; }
+@media (max-width:600px) {
+  .error-bubble { right: 14px; bottom: 14px; width: 56px; height: 56px; }
+  .modal-overlay { padding: 10px; } .error-modal { padding: 18px 12px; max-height: 92vh; }
+  .modal-header h2 { font-size: 19px; }
+}
+
+@media (max-width:600px) {
+  .card-wrap { height:220px; }
+  .face { font-size:18px; padding:22px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📚 REPRISE EXAM AMF</h1>
+  <div class="subtitle">Clique sur une question pour voir la réponse. Reclique pour revenir à la question.</div>
+  <div class="success-panel" aria-live="polite">
+    <div class="success-heading"><span>✅ Taux de réussite</span><span id="successPercent" class="success-percent">100 %</span></div>
+    <div class="success-track" role="progressbar" aria-label="Taux de réussite" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="successFill" class="success-fill"></div></div>
+    <div id="successDetails" class="success-details">0 carte en rouge · 0 carte réussie sur 0</div>
+  </div>
+  <div class="counter"><span id="count">0</span> cartes</div>
+  <div id="cards" class="grid"></div>
+  <button id="shuffleBtn">🔀 Mélanger</button>
+</div>
+
+<button id="errorBubble" class="error-bubble" type="button" aria-label="Afficher les cartes d'erreurs" title="Afficher les cartes d'erreurs">
+  ⚑ <span id="errorBadge" class="error-badge">0</span>
+</button>
+
+<div id="errorModalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="errorModalTitle">
+  <div class="error-modal">
+    <button id="closeErrorModal" class="close-modal" type="button" aria-label="Fermer">×</button>
+    <div class="modal-header"><h2 id="errorModalTitle">🔴 Mes cartes d'erreurs (<span id="modalErrorCount">0</span>)</h2></div>
+    <div id="errorCardsList" class="error-list"></div>
+  </div>
+</div>
+
+<script>
+const originalCards = [
+{
+    q: " combien de stagiaires un superviseur de stage peut avoir au maximum?",
+    a: "5 max."
+  },{
+    q: "Quel est le montant maximal d'indemnité que le Fonds peut accorder à une personne victome de détournement de fonds d'un conseiller pour sa réclamation suite à une demande d'indemnisation?",
+    a: "200k par réclamation."
+  },{
+    q: "limites maximales pénales?",
+    a: "1M."
+  },{
+    q: "Pour une personne victime de fraude combien de temps la personne doit-elle respecter comme délais pour déposer sa réclamation auprès de l'AMF pour qu'elle soit admissible au FISF?",
+    a: "dans l'année (12 mois) de la connaissance de la fraude."
+  },{
+    q: "victime d'un détournement de fonds commis par son conseiller, une fraude est survenue 18 mois après la révocation du certificat du conseiller par l'AMF. Sous quelles conditions la demande de réclamation de la victime au FISF peut-elle être admissible?",
+    a: "Si la victime faisait affaires avec le conseiller avant la révocation ET que la fraude a été commise dans les 2 ans suivant sa révocation."
+  },{
+    q: "superviseure de stage, a accumulé deux manquements constatés à ses obligations d'encadrement au cours de la dernière année. Que doit faire ce superviseur avant de pouvoir agir de nouveau à titre de superviseure de stage?",
+    a: "suivre une formation de 60 min développée par l'AMF pour les superviseurs."
+  },{
+    q: "Est-ce que le courtier en assurance de dommages en automobile est assujettie par la réglementation à la règle de la séparation des clientèles?",
+    a: "Non car la distribution d'assurance n'est pas répertoriée comme étant une activité externe soumise à la séparation de la clientèle, et ce même si les assurances demeure une discipline encadrée par la LDPSF."
+  },{
+    q: "courtier hypothécaire rattaché à un cabinet avec activité externe de planificateur financier, est-ce ça imposent obligatoirement le dirigeant responsable de veiller à l'application de la règle de séparation stricte des clientèles?",
+    a: "Non planificateur financier ne fait pas partie des activités qui touchent la séparation de clientèle."
+  },{
+    q: "Un courtier qui souhaite agir à titre de dirigeant responsable comme représentant autonome ou société autonome, combien de temps as-t'il après avoir effectué son examen?",
+    a: "24 mois."
+  },{
+    q: "Déclaration d'activité externe d'un courtier hypothécaire (exemple comptabilité) processus?",
+    a: "Courtier hyp doit déclarer à son directeur d'agence (gestionnaire/cabinet) par écrit ET EN PLUS doit le déclarer à l'AMF puisqu'il s'agit d'une prestation de services liés aux finances, et le directeur d'agence doit consigner ces renseignements dans le dossier D'activités externes de son représentant (courtier)."
+  },{
+    q: "Courtier hyp détenant emploi externe NON répertorier comme emploi exigeant séparation de clientèle côté déontologique, si le courtier souhaite réutiliser des informations confidentielles obtenues lors de l'inspection/évaluation pour le dossier de courtage (ou l'inverse), peut-il?",
+    a: "Oui mais il doit obligatoirement obtenir le consentement écrit préalable du client et le verser au dossier client."
+  },{
+    q: "Si courtier hyp est Évaluateur/inspecteur peut-il exercer les 2?",
+    a: "Oui mais séparation de clientèle REQUISE, Courtier hyp doit déclarer à son directeur d'agence (gestionnaire/cabinet) par écrit ET EN PLUS doit le déclarer à l'AMF puisqu'il s'agit d'une prestation de services liés aux finances, et le directeur d'agence doit consigner ces renseignements dans le dossier D'activités externes de son représentant (courtier)."
+  },{
+    q: "si un courtier hypothécaire ayant une activité externe comme évaluateur a fait un prêt d'achat de maison avec une cliente et que 1 an et demi plus tard la soeur de cette cliente appelle le courtier mais pour plutôt l'engager pour une évaluation de maison, est-ce que le courtier peut effectuer cette évaluation??",
+    a: "Non, l'interdiction d'offrir des services d'évaluation agréée s'étend également à toute personne physique que le courtier hypothécaire connaît comme faisant partie de la famille de son client."
+  },{
+    q: "Courtier reçoit une avance de rémunération d'un prêteur privé avant le déboursé final d'un prêt, quelle est l'obligation qu'il doit entreprendre par rapport à son client sur l'obligation de divulgation ET que le dirigeant responsable doit lui vérifier?",
+    a: "Tout avance de rémunération ou avantage financier perçu doit faire l'objet d'une divulgation écrite claire au client."
+  },{
+    q: "si depuis des années un courtier a toujours fait à peu près le même nombre de dossiers avec ce prêteur et que cette année le prêteur offre un voyage aux top courtiers (celui-ci était déjà dans le top) que doit-il faire et que doit faire le dirigeant responsable?",
+    a: "Courtier: refuser le voyage, avertir son dirigeant responsable. Dirigeant responsable: dirigeant responsable a le devoir d'intervenir auprès des acteurs du milieu (les prêteurs) pour les dissuader de proposer de tels concours de vente ou récompenses aux courtiers rattachés au cabinet + noter dans le registre des mesures incitatives."
+  },{
+    q: "Dans le cas d’une audience du TMF, combien de jours à l’avance l’intéressé doit être avisé?",
+    a: "au moins 15 jours à l'avance."
+  },{
+    q: "vrai ou faux; Le client conserve en tout temps le droit de retirer son consentement à la communication ou à l'utilisation de ses renseignements personnels?",
+    a: "vrai."
+  },{
+    q: "Vrai ou faux; la LPRPSP ne couvre ni les sociétés, ni les personnes morales?",
+    a: "vrai."
+  },{
+    q: "Combien de jours l’instruit a pour répondre à la demande d’accès au dossier?",
+    a: "30 jours."
+  },{
+    q: "CAI est fédéral ou provincial?",
+    a: "provincial."
+  },{
+    q: "Lors de situations ou un client de courtier hypothécaire demande à transmettre ses renseignements à un tiers, est-ce que la LPRPSP exige un consentement écrit?",
+    a: "Dans ce cas non pas obligé par écrit MAIS on doit l'avoir verbal (quoique écrit est recommandé)."
+  },{
+    q: "Si un incident de confidentialité survient, l’inscrit doit aviser l’AMF vrai ou faux?",
+    a: "Faux, ce n’est PAS l’AMF qu’il faut aviser c’est le CAI SEULEMENT lorsque ça ressemble à un préjudice sérieux, sinon on ne fait que le documenter dans le registre des incidents."
+  },{
+    q: "montants pénalités pour une personne morale en cas d'incident pécuniaire, et pénales, et pour une personne physique en cas d'incident pécuniaire ou pénales?",
+    a: "personne morale pécuniaires jusqu'à 10M, jusqu'à 25M pénales, personne physique entre 5 et 100k pécuniaire ou pénale."
+  },{
+    q: "En télémarketing quelles sont les heures légales officielles permises par la loi?",
+    a: "lun-ven 9h à 21h30 + sam-dim 10h à 18h"
+  },{
+    q: "Quels sont les montants des amandes possibles pour personne physique et personne morale si l’inscrit ne respecte pas les règles de télémarketing?",
+    a: "1,500$ à 15,000$."
+  },{
+    q: "Qu’est-ce qu’un consentement tacite (implicite) et un consentement exprès, quelles sont les différentes?",
+    a: "Tacite/implicite=Relation d’affaires existante ou via une carte d’affaire remise. Exprès=Formulaire."
+  },{
+    q: "Quelles sont les conditions du mandat de protection?",
+    a: "1) Il est donné par une personne majeure et en prévision de son inaptitude, 2) Il ne peut être fait que par Acte notarié en minute ou devant témoins, 3) Il ne peut pas être fait conjointement par 2 personnes ou +.."
+  },{
+    q: "Le mineur peut conclure seul des contrats destinés à satisfaire ses besoins usuels et ordinaires?",
+    a: "Vrai, étant mineur il peut faire des actes de besoins usuels et ordinaires (par exemple : achat de vêtements, de nourriture ou de fournitures scolaires)."
+  },{
+    q: "Qu’est-ce qu’un meuble par anticipation?",
+    a: "Immeubles qui deviendront meubles comme blé qui sera récolté, ou matériau de construction."
+  },{
+    q: "Qu’est-ce qu’un meuble résiduaire??",
+    a: "tout autre bien."
+  },{
+    q: "meuble par nature VS immeuble par nature?",
+    a: "meublbe par nature = Biens qui peuvent se transporter comme chaise, voiture, frigo. Immeuble par nature = Bien immeuble de type sol exemple fonds de terre, végétaux, minéraux."
+  },{
+    q: "Qu’est-ce que les meubles matériellement attachés ou réunis à l’immeuble par nature?",
+    a: "Ex : Luminaires, plaques de cuissons, encastrés.."
+  },{
+    q: "Qu’est-ce qu’un immeuble par détermination de la loi?",
+    a: "Ex : Parties temporairement détachées d’un immeuble si elles sont destinées à y être replacées ou un article du CCQ."
+  },{
+    q: "solidarité/obligation solidaire VS solidarité entre créancier?",
+    a: "solidarité/obligation solidaire=Résulte de la présence de plusieurs créanciers ou débiteurs liés par une seule obligation. VS solidarité entre créancier=Emprunteur doit à plusieurs créanciers, l’emprunteur peut alors payer la totalité de la dette d’un créancier pour se libérer."
+  },{
+    q: "Que doit avoir le superviseur pour être admissible?",
+    a: "1) Certificat valide, 2) 24 des 36 mois actifs dans discipline, 3) Ne PAS avoir été radié ni fait l’objet d’une sanction 5 ans avant, 4) Ne PAS avoir reçu dans la dernière année un 2e avis pour manquement."
+  },{
+    q: "Quels sont les types de contrats?",
+    a: "1) Adhésion (écrit à l’avance, imposé à l’un des 2, non négociable) VS Gré à gré (négociable), 2) Synallagmatique/bilatéral (les 2 parties s’engagent) VS Unilatéral (1 personne s’engage), 3) Onéreux (échange d’argent) VS Gratuit (don), 4) Commutatif (Connu d’avance) VS Aléatoire (au hasard), 5) Exécution instantanée (se réalise en 1 coup) VS exécution successive (se réalise dans la durée), 6) Contrat de consommation=achat du consommateur particulier dans magasin entreprise."
+  },{
+    q: "Que doit comporter un contrat pour être valide?",
+    a: "1) Objet, 2) Cause, 3) Consentement, 4) Capacité de conclure un contrat."
+  },{
+    q: "Synonyme de la responsabilité civile délictuelle?",
+    a: "=responsabilité civile extracontractuelle."
+  },{
+    q: "faute lource c'est quoi?",
+    a: "Faute dénote l’insouciance, imprudence ou négligence grossière."
+  },{
+    q: "Quels sont les paliers de tribunaux et selon quels montants sont-ils affiliés?",
+    a: "1) Petites créances : -15k, 2) Cour du québec chambre civile : entre 15k et 85k, 3) Cour supérieure +85k.."
+  },{
+    q: "Quel est l’organisme qui veille à la protection des renseignements personnels secteur privé??",
+    a: "CAI=commission d'accès àml'information."
+  },{
+    q: "Qu’est-ce que l’assurance responsabilité doit couvrir pour un représentant?",
+    a: "1) Montant couvert doit être + 500k par réclamation et + 1M par année, 2) Couvre faute lourde pour lui+mandataires+employéés+stagiaires, 3) Franchise ne peut pas excéder 10k, 4) Couvrir 5 ans après cessation des activités, 5) L’assureur doit aviser l’AMF 30 jours avant résiliation, 6) L’assureur doit aviser l’AMF de non-renouvellement ou résiliation, 7) L’assureur doit aviser l’AMF de réclamation (qu’il l’honore ou pas)."
+  },{
+    q: "Quel est l’organisation externe de traitement de plaintes des banques?",
+    a: "L'OSBI."
+  },{
+    q: "quelles disciplines doivent s'enregistrer au RCPA?",
+    a: "Assurance de personne et assurance collective."
+  },
+
+];let cards = [...originalCards];
+const markedCards = new Set();
+
+function updateErrorCount() {
+  const count = markedCards.size;
+  document.getElementById('errorBadge').textContent = count;
+  document.getElementById('modalErrorCount').textContent = count;
+
+  const total = cards.length;
+  const successful = Math.max(0, total - count);
+  const percentage = total ? Math.round((successful / total) * 100) : 0;
+  document.getElementById('successPercent').textContent = percentage + ' %';
+  document.getElementById('successFill').style.width = percentage + '%';
+  document.querySelector('.success-track').setAttribute('aria-valuenow', percentage);
+  document.getElementById('successDetails').textContent =
+    `${count} carte${count === 1 ? '' : 's'} en rouge · ${successful} carte${successful === 1 ? '' : 's'} réussie${successful === 1 ? '' : 's'} sur ${total}`;
+}
+
+function createCardFace(item, isErrorList = false) {
+  const wrap = document.createElement('div');
+  if (isErrorList) {
+    wrap.className = 'error-card';
+    wrap.innerHTML = `<button class="unmark-btn" type="button" aria-label="Retirer cette carte des cartes d'erreurs" title="Remettre cette carte en normal"></button>
+      <strong>${escapeHtml(item.q)}</strong><div class="answer">${escapeHtml(item.a)}</div>`;
+    wrap.querySelector('.unmark-btn').addEventListener('click', (event) => {
+      event.stopPropagation();
+      markedCards.delete(item);
+      render();
+      renderErrorCards();
+    });
+    wrap.addEventListener('click', () => wrap.classList.toggle('flipped'));
+    return wrap;
+  }
+
+  wrap.className = 'card-wrap' + (markedCards.has(item) ? ' marked' : '');
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="face front">
+        <div>${escapeHtml(item.q)}</div>
+        <div class="hint">Clique pour voir la réponse 👆</div>
+      </div>
+      <div class="face back">
+        <div>${escapeHtml(item.a)}</div>
+        <div class="hint">Clique pour revenir à la question 👆</div>
+      </div>
+    </div>`;
+
+  const markBtn = document.createElement('button');
+  markBtn.className = 'mark-btn' + (markedCards.has(item) ? ' marked' : '');
+  markBtn.type = 'button';
+  markBtn.setAttribute('aria-label', markedCards.has(item) ? 'Retirer des cartes d’erreurs' : 'Marquer cette question comme erreur');
+  markBtn.title = markedCards.has(item) ? 'Carte marquée comme erreur' : 'Marquer comme erreur';
+  wrap.appendChild(markBtn);
+
+  markBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (markedCards.has(item)) markedCards.delete(item);
+    else markedCards.add(item);
+    render();
+    renderErrorCards();
+  });
+
+  wrap.addEventListener('click', () => {
+    wrap.querySelector('.card').classList.toggle('flipped');
+  });
+  return wrap;
+}
+
+function render() {
+  const container = document.getElementById('cards');
+  container.innerHTML = '';
+  document.getElementById('count').textContent = cards.length;
+  cards.forEach(item => container.appendChild(createCardFace(item)));
+  updateErrorCount();
+}
+
+function renderErrorCards() {
+  const container = document.getElementById('errorCardsList');
+  container.innerHTML = '';
+  const errorCards = cards.filter(item => markedCards.has(item));
+  document.getElementById('modalErrorCount').textContent = errorCards.length;
+  document.getElementById('errorBadge').textContent = errorCards.length;
+  if (errorCards.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-errors';
+    empty.textContent = 'Aucune carte en rouge pour le moment. Clique sur le point rouge d’une carte pour l’ajouter ici.';
+    container.appendChild(empty);
+    return;
+  }
+  errorCards.forEach(item => container.appendChild(createCardFace(item, true)));
+}
+
+const errorModalOverlay = document.getElementById('errorModalOverlay');
+document.getElementById('errorBubble').addEventListener('click', () => {
+  renderErrorCards();
+  errorModalOverlay.classList.add('open');
+});
+document.getElementById('closeErrorModal').addEventListener('click', () => errorModalOverlay.classList.remove('open'));
+errorModalOverlay.addEventListener('click', event => {
+  if (event.target === errorModalOverlay) errorModalOverlay.classList.remove('open');
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') errorModalOverlay.classList.remove('open');
+});
+
+function escapeHtml(value) {
+  return value
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+
+document.getElementById('shuffleBtn').addEventListener('click', () => {
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+  render();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+
+render();
+</script>
+</body>
+</html>
